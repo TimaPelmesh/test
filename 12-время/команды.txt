@@ -1,0 +1,7 @@
+12. ВРЕМЯ
+
+ISP, HQ-SRV, BR-SRV, HQ-CLI
+timedatectl set-timezone Europe/Moscow
+
+HQ-RTR, BR-RTR
+ntp timezone utc+3

@@ -1,0 +1,48 @@
+8. OSPF
+MD5, key 1, пароль P@ssw0rd
+
+HQ-RTR   Hello только в туннель. Сосед один: 10.10.10.2 Full
+router ospf 1
+passive-interface default
+no passive-interface tunnel.0
+network 10.10.10.0/30 area 0
+network 10.10.100.0/27 area 0
+network 10.10.200.0/28 area 0
+network 10.10.30.0/29 area 0
+area 0 authentication message-digest
+exit
+interface tunnel.0
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+write memory
+show ip ospf neighbor
+show ip ospf interface tunnel.0
+show ip route ospf
+
+BR-RTR   Hello в туннель и на fw. Два соседа Full
+router ospf 1
+passive-interface default
+no passive-interface tunnel.0
+no passive-interface fw
+network 10.10.10.0/30 area 0
+network 10.20.10.0/30 area 0
+area 0 authentication message-digest
+exit
+interface tunnel.0
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+interface fw
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+write memory
+show ip ospf neighbor
+show ip ospf interface fw
+show ip route ospf
+
+BR-FW
+MD5, Key ID 1, P@ssw0rd
+Интерфейсы область 0, Normal: oif0, iif0, iif1
+Тумблер OSPF: Работает

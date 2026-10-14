@@ -1,0 +1,16 @@
+HQ-CLI
+Адрес выдаёт DHCP на HQ-RTR (10.10.200.2-14). Сначала DHCP на роутере.
+Терминал: ПКМ по столу -> Открыть в Терминале, затем su -
+
+# 1. Имя
+su -
+hostnamectl set-hostname hq-cli.au-team.irpo
+# /etc/sysconfig/network -> HOSTNAME=hq-cli.au-team.irpo
+exec bash
+
+# 2. Проверка: адрес .2-.14, шлюз 10.10.200.1, DNS 10.10.100.2, домен au-team.irpo
+ip -c a
+cat /etc/resolv.conf
+
+# 3. Часовой пояс
+timedatectl set-timezone Europe/Moscow

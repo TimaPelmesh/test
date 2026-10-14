@@ -1,0 +1,43 @@
+9. NAT
+Пинг запускай с сервера и не останавливай. С роутера записей не будет.
+
+HQ-RTR
+interface isp
+ip nat outside
+exit
+interface vl100
+ip nat inside
+exit
+interface vl200
+ip nat inside
+exit
+interface vl999
+ip nat inside
+exit
+ip nat pool HQ 10.10.30.1-10.10.200.14
+ip nat source dynamic inside-to-outside pool HQ overload interface isp
+write memory
+
+BR-RTR
+interface isp
+ip nat outside
+exit
+interface fw
+ip nat inside
+exit
+ip nat pool BR 10.20.10.1-10.20.30.6
+ip nat source dynamic inside-to-outside pool BR overload interface isp
+write memory
+
+Проверка
+HQ-SRV: ping 77.88.8.8     на HQ-RTR ждёшь 10.10.100.2 -> 172.16.1.2
+BR-SRV: ping 77.88.8.8     на BR-RTR ждёшь 10.20.20.2 -> 172.16.2.2
+show ip nat translations
+show running-config | grep nat
+
+Если пусто, HQ (на BR то же с пулом BR 10.20.10.1-10.20.30.6)
+no ip nat source dynamic inside-to-outside pool HQ overload interface isp
+no ip nat pool HQ
+ip nat pool HQ 10.10.30.1-10.10.200.14
+ip nat source dynamic inside-to-outside pool HQ overload interface isp
+write memory

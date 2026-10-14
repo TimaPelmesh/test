@@ -1,0 +1,20 @@
+7. GRE
+Сначала с HQ-RTR: ping 172.16.2.2
+
+HQ-RTR   10.10.10.1/30, source 172.16.1.2, destination 172.16.2.2
+interface tunnel.0
+ip address 10.10.10.1/30
+ip tunnel 172.16.1.2 172.16.2.2 mode gre
+exit
+write memory
+show interface tunnel.0
+ping 10.10.10.2
+
+BR-RTR   10.10.10.2/30, наоборот
+interface tunnel.0
+ip address 10.10.10.2/30
+ip tunnel 172.16.2.2 172.16.1.2 mode gre
+exit
+write memory
+show interface tunnel.0
+ping 10.10.10.1

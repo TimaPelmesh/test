@@ -1,0 +1,15 @@
+4. УЧЁТКИ
+Пароль везде P@ssw0rd
+
+HQ-SRV и BR-SRV
+useradd sshuser -u 2026
+passwd sshuser
+usermod -aG wheel sshuser
+echo "sshuser ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+HQ-RTR и BR-RTR
+username net_admin
+password P@ssw0rd
+role admin
+exit
+write memory

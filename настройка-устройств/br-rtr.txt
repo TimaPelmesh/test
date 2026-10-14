@@ -1,0 +1,101 @@
+BR-RTR
+Адреса и маршрут сразу. GRE и OSPF после ping 172.16.1.2. NAT когда у BR-SRV есть адрес.
+В начале: enable / configure terminal
+Линк к Ideco: 10.20.10.0/30. Если на стенде другая подсеть — бери её и в OSPF, и в NAT.
+
+# 1. Имя
+hostname br-rtr
+ip domain-name au-team.irpo
+ip name-server 10.10.100.2
+
+# 2. Адреса. isp к провайдеру, fw к Ideco
+interface isp
+ip address 172.16.2.2/28
+exit
+interface fw
+ip address 10.20.10.1/30
+exit
+
+# 3. Порты. ge0 — ISP, ge1 — BR-FW, оба без тега
+port ge0
+service-instance ge0/isp
+encapsulation untagged
+connect ip interface isp
+exit
+exit
+port ge1
+service-instance ge1/fw
+encapsulation untagged
+connect ip interface fw
+exit
+exit
+write memory
+show ip interface brief
+
+# 4. Маршрут
+ip route 0.0.0.0/0 172.16.2.1
+write memory
+ping 172.16.1.2
+
+# 5. Учётка P@ssw0rd
+username net_admin
+password P@ssw0rd
+role admin
+exit
+write memory
+
+# 6. GRE. source 172.16.2.2, destination 172.16.1.2
+interface tunnel.0
+ip address 10.10.10.2/30
+ip tunnel 172.16.2.2 172.16.1.2 mode gre
+exit
+write memory
+show interface tunnel.0
+ping 10.10.10.1
+
+# 7. OSPF. Hello в туннель и на Ideco. Сети за Ideco объявляет сам BR-FW
+router ospf 1
+passive-interface default
+no passive-interface tunnel.0
+no passive-interface fw
+network 10.10.10.0/30 area 0
+network 10.20.10.0/30 area 0
+area 0 authentication message-digest
+exit
+interface tunnel.0
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+interface fw
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+write memory
+# 30-40 сек. Два соседа Full: 10.10.10.1 и Ideco. Один сосед — OSPF на Ideco выключен
+show ip ospf neighbor
+show ip ospf interface fw
+show ip route ospf
+
+# 8. NAT. Пул включает Ideco 10.20.10.2 и сети BR-SRV/BR-CLI
+interface isp
+ip nat outside
+exit
+interface fw
+ip nat inside
+exit
+ip nat pool BR 10.20.10.1-10.20.30.6
+ip nat source dynamic inside-to-outside pool BR overload interface isp
+write memory
+# пинг с BR-SRV. Ждёшь 10.20.20.2 -> 172.16.2.2
+show ip nat translations
+
+# если пусто. reload — только когда повтор пула не помог
+no ip nat source dynamic inside-to-outside pool BR overload interface isp
+no ip nat pool BR
+ip nat pool BR 10.20.10.1-10.20.30.6
+ip nat source dynamic inside-to-outside pool BR overload interface isp
+write memory
+
+# 9. Часовой пояс
+ntp timezone utc+3
+write memory

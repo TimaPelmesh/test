@@ -1,0 +1,16 @@
+HQ-SW
+Мост уже есть — не создавай, только ovs-vsctl show.
+ens3 транк на HQ-RTR (100,200,999). ens4 VLAN 100 HQ-SRV. ens5 VLAN 200 HQ-CLI. MGMT VLAN 999.
+
+# 1. Имя, только если это отдельная ВМ
+hostnamectl set-hostname hq-sw
+# /etc/sysconfig/network -> HOSTNAME=hq-sw
+exec bash
+
+# 2. Мост с нуля. Вывод show — в отчёт
+ovs-vsctl add-br hq-sw
+ovs-vsctl add-port hq-sw ens3 trunks=100,200,999
+ovs-vsctl add-port hq-sw ens4 tag=100
+ovs-vsctl add-port hq-sw ens5 tag=200
+ovs-vsctl add-port hq-sw MGMT tag=999 -- set interface MGMT type=internal
+ovs-vsctl show

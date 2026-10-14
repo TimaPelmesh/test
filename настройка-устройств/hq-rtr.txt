@@ -1,0 +1,139 @@
+HQ-RTR
+Сначала адреса и маршрут. GRE, OSPF, NAT, DHCP — после ping 172.16.2.2.
+В начале: enable / configure terminal
+
+# 1. Имя, домен, DNS HQ-SRV
+hostname hq-rtr
+ip domain-name au-team.irpo
+ip name-server 10.10.100.2
+
+# 2. Адреса: isp к провайдеру, vl100 серверы, vl200 клиенты, vl999 управление
+interface isp
+ip address 172.16.1.2/28
+exit
+interface vl100
+ip address 10.10.100.1/27
+exit
+interface vl200
+ip address 10.10.200.1/28
+exit
+interface vl999
+ip address 10.10.30.1/29
+exit
+
+# 3. Порты. Без connect интерфейс down. ge0 — ISP, ge1 — транк на HQ-SW
+port ge0
+service-instance ge0/isp
+encapsulation untagged
+connect ip interface isp
+exit
+exit
+port ge1
+service-instance ge1/vl100
+encapsulation dot1q 100 exact
+rewrite pop 1
+connect ip interface vl100
+exit
+service-instance ge1/vl200
+encapsulation dot1q 200 exact
+rewrite pop 1
+connect ip interface vl200
+exit
+service-instance ge1/vl999
+encapsulation dot1q 999 exact
+rewrite pop 1
+connect ip interface vl999
+exit
+exit
+write memory
+show ip interface brief
+show service-instance brief
+
+# 4. Маршрут в интернет, шлюз — ISP
+ip route 0.0.0.0/0 172.16.1.1
+write memory
+ping 172.16.2.2
+
+# 5. Учётка, пароль P@ssw0rd
+username net_admin
+password P@ssw0rd
+role admin
+exit
+write memory
+
+# 6. GRE. source свой 172.16.1.2, destination сосед 172.16.2.2
+interface tunnel.0
+ip address 10.10.10.1/30
+ip tunnel 172.16.1.2 172.16.2.2 mode gre
+exit
+write memory
+show interface tunnel.0
+ping 10.10.10.2
+
+# 7. OSPF. Hello только в туннель. MD5 key 1, пароль как на BR-RTR и Ideco
+router ospf 1
+passive-interface default
+no passive-interface tunnel.0
+network 10.10.10.0/30 area 0
+network 10.10.100.0/27 area 0
+network 10.10.200.0/28 area 0
+network 10.10.30.0/29 area 0
+area 0 authentication message-digest
+exit
+interface tunnel.0
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+write memory
+# 30-40 сек. Сосед один: 10.10.10.2 Full
+show ip ospf neighbor
+show ip ospf interface tunnel.0
+show ip route ospf
+
+# 8. NAT. outside к ISP, inside клиенты. Пинг с HQ-SRV, не с роутера
+interface isp
+ip nat outside
+exit
+interface vl100
+ip nat inside
+exit
+interface vl200
+ip nat inside
+exit
+interface vl999
+ip nat inside
+exit
+ip nat pool HQ 10.10.30.1-10.10.200.14
+ip nat source dynamic inside-to-outside pool HQ overload interface isp
+write memory
+# ждёшь 10.10.100.2 -> 172.16.1.2
+show ip nat translations
+show running-config | grep nat
+
+# если таблица пустая
+no ip nat source dynamic inside-to-outside pool HQ overload interface isp
+no ip nat pool HQ
+ip nat pool HQ 10.10.30.1-10.10.200.14
+ip nat source dynamic inside-to-outside pool HQ overload interface isp
+write memory
+
+# 9. DHCP для HQ-CLI. .1 роутеру, клиентам с .2
+ip pool VLAN200 10.10.200.2-10.10.200.14
+dhcp-server 1
+pool VLAN200 1
+mask 28
+gateway 10.10.200.1
+dns 10.10.100.2
+domain-name au-team.irpo
+exit
+exit
+interface vl200
+dhcp-server 1
+exit
+write memory
+show running-config dhcp-server 1
+show dhcp-server clients vl200
+
+# 10. Часовой пояс
+ntp timezone utc+3
+write memory

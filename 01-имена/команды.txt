@@ -1,0 +1,40 @@
+1. ИМЕНА
+Строку HOSTNAME пиши в /etc/sysconfig/network, затем exec bash.
+
+ISP
+hostnamectl set-hostname isp
+HOSTNAME=isp
+
+HQ-RTR
+enable
+configure terminal
+hostname hq-rtr
+ip domain-name au-team.irpo
+ip name-server 10.10.100.2
+
+BR-RTR
+enable
+configure terminal
+hostname br-rtr
+ip domain-name au-team.irpo
+ip name-server 10.10.100.2
+
+HQ-SRV
+hostnamectl set-hostname hq-srv.au-team.irpo
+HOSTNAME=hq-srv.au-team.irpo
+
+BR-SRV
+hostnamectl set-hostname br-srv.au-team.irpo
+HOSTNAME=br-srv.au-team.irpo
+
+HQ-CLI   (su -)
+hostnamectl set-hostname hq-cli.au-team.irpo
+HOSTNAME=hq-cli.au-team.irpo
+
+BR-CLI   (если есть, su -)
+hostnamectl set-hostname br-cli.au-team.irpo
+HOSTNAME=br-cli.au-team.irpo
+
+HQ-SW    (если отдельная ВМ)
+hostnamectl set-hostname hq-sw
+HOSTNAME=hq-sw
